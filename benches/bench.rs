@@ -18,7 +18,7 @@ extern crate rand_xorshift;
 extern crate test;
 
 use bit_vec::BitVec;
-use rand::{Rng, RngCore, SeedableRng};
+use rand::{Rng, RngExt, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use test::{black_box, Bencher};
 
@@ -27,7 +27,7 @@ const BENCH_BITS: usize = 1 << 14;
 const U32_BITS: usize = 32;
 
 fn small_rng() -> XorShiftRng {
-    XorShiftRng::from_os_rng()
+    XorShiftRng::from_rng(&mut rand::rng())
 }
 
 #[bench]
