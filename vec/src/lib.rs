@@ -119,6 +119,8 @@ extern crate miniserde;
 #[cfg(feature = "serde")]
 extern crate serde;
 
+mod util;
+
 use core::cell::RefCell;
 use core::cmp;
 use core::cmp::Ordering;
@@ -197,17 +199,6 @@ bit_block_impl! {
     (usize, core::mem::size_of::<usize>() * 8)
 }
 
-fn reverse_bits(byte: u8) -> u8 {
-    let mut result = 0;
-    for i in 0..u8::bits() {
-        result |= ((byte >> i) & 1) << (u8::bits() - 1 - i);
-    }
-    result
-}
-
-static TRUE: bool = true;
-static FALSE: bool = false;
-
 /// The bitvector type.
 ///
 /// # Examples
@@ -258,9 +249,9 @@ impl<B: BitBlock> Index<usize> for BitVec<B> {
     #[inline]
     fn index(&self, i: usize) -> &bool {
         if self.get(i).expect("index out of bounds") {
-            &TRUE
+            &util::TRUE
         } else {
-            &FALSE
+            &util::FALSE
         }
     }
 }
@@ -455,7 +446,8 @@ impl<B: BitBlock> BitVec<B> {
         for i in 0..complete_words {
             let mut accumulator = B::zero();
             for idx in 0..B::bytes() {
-                accumulator |= B::from_byte(reverse_bits(bytes[i * B::bytes() + idx])) << (idx * 8)
+                accumulator |=
+                    B::from_byte(util::reverse_bits(bytes[i * B::bytes() + idx])) << (idx * 8)
             }
             bit_vec.storage.push(accumulator);
         }
@@ -463,7 +455,7 @@ impl<B: BitBlock> BitVec<B> {
         if extra_bytes > 0 {
             let mut last_word = B::zero();
             for (i, &byte) in bytes[complete_words * B::bytes()..].iter().enumerate() {
-                last_word |= B::from_byte(reverse_bits(byte)) << (i * 8);
+                last_word |= B::from_byte(util::reverse_bits(byte)) << (i * 8);
             }
             bit_vec.storage.push(last_word);
         }
@@ -1392,18 +1384,6 @@ impl<B: BitBlock> BitVec<B> {
     /// assert_eq!(bv.to_bytes(), [0b00100000, 0b10000000]);
     /// ```
     pub fn to_bytes(&self) -> Vec<u8> {
-        static REVERSE_TABLE: [u8; 256] = {
-            let mut tbl = [0u8; 256];
-            let mut i: u8 = 0;
-            loop {
-                tbl[i as usize] = i.reverse_bits();
-                if i == 255 {
-                    break;
-                }
-                i += 1;
-            }
-            tbl
-        };
         self.ensure_invariant();
 
         let len = self.nbits / 8 + if self.nbits % 8 == 0 { 0 } else { 1 };
@@ -1417,7 +1397,7 @@ impl<B: BitBlock> BitVec<B> {
                     byte |= 1 << bit_idx;
                 }
             }
-            result.push(REVERSE_TABLE[byte as usize]);
+            result.push(util::reverse_bits(byte));
         }
 
         result
