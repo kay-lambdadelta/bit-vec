@@ -69,7 +69,7 @@ fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
                 }
             }
             13 => {
-                v.clear();
+                v.fill(false);
             }
             14 => {
                 if !v.is_empty() {

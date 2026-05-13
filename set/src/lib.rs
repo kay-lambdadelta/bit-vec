@@ -822,10 +822,31 @@ impl<B: BitBlock> BitSet<B> {
         self.bit_vec.none()
     }
 
+    /// Removes all elements of this set.
+    ///
+    /// Different from [`reset`] only in that the capacity is preserved.
+    ///
+    /// [`reset`]: Self::reset
+    #[inline]
+    pub fn make_empty(&mut self) {
+        self.bit_vec.fill(false);
+    }
+
+    /// Resets this set to an empty state.
+    ///
+    /// Different from [`make_empty`] only in that the capacity may NOT be preserved.
+    ///
+    /// [`make_empty`]: Self::make_empty
+    #[inline]
+    pub fn reset(&mut self) {
+        self.bit_vec.remove_all();
+    }
+
     /// Clears all bits in this set
+    #[deprecated(since = "0.9.0", note = "please use `fn make_empty` instead")]
     #[inline]
     pub fn clear(&mut self) {
-        self.bit_vec.fill(false);
+        self.make_empty();
     }
 
     /// Returns `true` if this set contains the specified integer.
@@ -1566,7 +1587,7 @@ mod tests {
         assert_eq!(a.count(), 2);
 
         let old_cap2 = a.capacity();
-        a.clear();
+        a.make_empty();
         assert_eq!(a.capacity(), old_cap2);
         assert_eq!(a.count(), 0);
         assert!(!a.contains(1));
