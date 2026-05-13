@@ -102,16 +102,14 @@ use std::string::String;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
-#[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "borsh")]
 extern crate borsh;
 #[cfg(feature = "miniserde")]
 extern crate miniserde;
 #[cfg(feature = "nanoserde")]
 extern crate nanoserde;
+#[cfg(feature = "serde")]
+extern crate serde;
 #[cfg(feature = "nanoserde")]
 use nanoserde::{DeBin, DeJson, DeRon, SerBin, SerJson, SerRon};
 
@@ -244,7 +242,7 @@ type B = u32;
 /// println!("{:?}", bv);
 /// println!("total bits set to true: {}", bv.iter().filter(|x| *x).count());
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "borsh",
     derive(borsh::BorshDeserialize, borsh::BorshSerialize)
@@ -3213,7 +3211,7 @@ mod tests {
     fn test_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = serde_json::to_string(&bit_vec).unwrap();
-        let unserialized: BitVec = serde_json::from_str(&serialized).unwrap();
+        let unserialized: BitVec = serde_json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
         let bools = vec![true, false, true, true];
@@ -3228,7 +3226,7 @@ mod tests {
     fn test_miniserde_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = miniserde::json::to_string(&bit_vec);
-        let unserialized: BitVec = miniserde::json::from_str(&serialized[..]).unwrap();
+        let unserialized: BitVec<S> = miniserde::json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
         let bools = vec![true, false, true, true];
@@ -3260,7 +3258,7 @@ mod tests {
     fn test_borsh_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = borsh::to_vec(&bit_vec).unwrap();
-        let unserialized: BitVec = borsh::from_slice(&serialized[..]).unwrap();
+        let unserialized: BitVec<S> = borsh::from_slice(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
         let bools = vec![true, false, true, true];

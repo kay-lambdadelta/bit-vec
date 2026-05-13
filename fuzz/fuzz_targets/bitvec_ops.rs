@@ -1,6 +1,7 @@
 //! Simple fuzzer testing all available `SmallVec` operations
+
 use bit_vec::{BitVec, BitBlock};
-use smallvec::SmallVec;
+// use smallvec::SmallVec;
 
 // There's no point growing too much, so try not to grow
 // over this size.
@@ -39,8 +40,7 @@ fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
             2 => {
                 v = BitVec::from_bytes_general(&v.to_bytes()[..]);
             }
-            3 => {
-            }
+            3 => {}
             4 => {
                 if v.len() < CAP_GROWTH {
                     v.push(next_u8!(bytes) < 128)
