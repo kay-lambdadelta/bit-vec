@@ -1,6 +1,7 @@
-//! Simple fuzzer testing all available `SmallVec` operations
+//! Simple fuzzer testing all available `BitVec`, `BitSet` and `BitMatrix` operations
 
-use bit_vec::{BitVec, BitBlock};
+use bit_vec::{BitBlock, BitVec};
+use bit_set::BitSet;
 // use smallvec::SmallVec;
 
 // There's no point growing too much, so try not to grow
@@ -24,13 +25,18 @@ fn black_box_bit_vec<T: BitBlock>(s: &BitVec<T>) {
     print!("{}", s);
 }
 
+fn black_box_bit_set<T: BitBlock>(s: &BitSet<T>) {
+    // print to work as a black_box
+    print!("{}", s);
+}
+
 fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
     let mut v = BitVec::<T>::new_general();
 
     let mut bytes = data.iter().copied();
 
     while let Some(op) = bytes.next() {
-        match op % 22 {
+        match op % 23 {
             0 => {
                 v = BitVec::new_general();
             }
@@ -111,6 +117,80 @@ fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
                 let slice = vec![next_u8!(bytes); next_usize!(bytes)];
                 v = BitVec::<T>::from_bytes_general(&slice[..]);
             }
+            22 => {
+                v.fill(true);
+            }
+            _ => panic!("booo"),
+        }
+    }
+    v
+}
+
+fn do_test_set<T: BitBlock>(data: &[u8]) -> BitSet<T> {
+    let mut v = BitSet::<T>::new_general();
+
+    let mut bytes = data.iter().copied();
+
+    while let Some(op) = bytes.next() {
+        match op % 16 {
+            0 => {
+                v = BitSet::new_general();
+            }
+            1 => {
+                v = BitSet::with_capacity_general(next_usize!(bytes));
+            }
+            2 => {
+                v = BitSet::from_bytes_general(&v.get_ref().to_bytes()[..]);
+            }
+            3 => {
+                if v.get_ref().len() < CAP_GROWTH {
+                    v.reserve_len(next_usize!(bytes))
+                }
+            }
+            4 => {
+                if v.get_ref().len() < CAP_GROWTH {
+                    v.reserve_len_exact(next_usize!(bytes))
+                }
+            }
+            5 => v.shrink_to_fit(),
+            6 => v.truncate(next_usize!(bytes)),
+            7 => black_box_bit_set(&v),
+            8 => {
+                if !v.is_empty() {
+                    v.remove(next_usize!(bytes) % v.get_ref().len());
+                }
+            }
+            9 => {
+                v.reset();
+            }
+            10 => {
+                let insert_pos = next_usize!(bytes) % (v.get_ref().len() + 1);
+                v.insert(insert_pos);
+            }
+
+            11 => {
+                v = BitSet::from_bytes_general(&v.get_ref().to_bytes()[..]);
+            }
+
+            12 => {
+                v = BitSet::from_bytes_general(data);
+            }
+
+            13 => {
+                if v.get_ref().len() < CAP_GROWTH {
+                    v.reserve_len(next_usize!(bytes));
+                }
+            }
+
+            14 => {
+                if v.get_ref().len() < CAP_GROWTH {
+                    v.reserve_len_exact(next_usize!(bytes));
+                }
+            }
+            15 => {
+                let slice = vec![next_u8!(bytes); next_usize!(bytes)];
+                v = BitSet::<T>::from_bytes_general(&slice[..]);
+            }
             _ => panic!("booo"),
         }
     }
@@ -124,6 +204,13 @@ fn do_test_all(data: &[u8]) {
     do_test::<u64>(data);
     // do_test::<u32, SmallVec<[u32; 8]>>(data);
     // do_test::<u16, Vec<u16>>(data);
+
+    do_test_set::<u32>(data);
+    do_test_set::<u8>(data);
+    do_test_set::<u16>(data);
+    do_test_set::<u64>(data);
+    // do_test_set::<u32, SmallVec<[u32; 8]>>(data);
+    // do_test_set::<u16, Vec<u16>>(data);
 }
 
 #[cfg(feature = "afl")]
@@ -175,9 +262,9 @@ mod tests {
         // paste the output of `xxd -p <crash_dump>` here and run `cargo test`
         extend_vec_from_hex(
             r#"
-            646e21f9f910f90200f9d9f9c7030000def9000010646e2af9f910f90264
-            6e21f9f910f90200f9d9f9c7030000def90000106400f9f9d9f9c7030000
-            def90000106400f9d9f9e7f1000000d9f9e7f1000000f9
+            787c4a1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d4a1d1d1d1d1d1d1d
+            1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d27271d1d1d1d1d1d2727fffe
+            270a610a
             "#,
             &mut a,
         );
