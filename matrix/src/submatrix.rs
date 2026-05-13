@@ -11,22 +11,22 @@ use crate::local_prelude::*;
 use crate::util::{div_rem, round_up_to_next};
 
 /// Immutable access to a range of matrix's rows.
-pub struct BitSubMatrix<'a> {
-    pub(crate) slice: &'a [Block],
+pub struct BitSubMatrix<'a, B: BitBlock> {
+    pub(crate) slice: &'a [B],
     pub(crate) row_bits: usize,
 }
 
 /// Mutable access to a range of matrix's rows.
-pub struct BitSubMatrixMut<'a> {
-    pub(crate) slice: &'a mut [Block],
+pub struct BitSubMatrixMut<'a, B: BitBlock> {
+    pub(crate) slice: &'a mut [B],
     pub(crate) row_bits: usize,
 }
 
-impl<'a> BitSubMatrix<'a> {
-    /// Returns a new BitSubMatrix.
-    pub fn new(slice: &[Block], row_bits: usize) -> BitSubMatrix<'_> {
-        BitSubMatrix { slice, row_bits }
-    }
+impl<'a, B: BitBlock> BitSubMatrix<'a, B> {
+    // /// Returns a new BitSubMatrix.
+    // pub(crate) fn new(slice: &[B], row_bits: usize) -> BitSubMatrix<'_, B> {
+    //     BitSubMatrix { slice, row_bits }
+    // }
 
     /// Forms a BitSubMatrix from a pointer and dimensions.
     ///
@@ -35,26 +35,33 @@ impl<'a> BitSubMatrix<'a> {
     /// Can construct an ill-formed value, thus the function is marked as
     /// unsafe.
     #[inline]
-    pub unsafe fn from_raw_parts(ptr: *const Block, rows: usize, row_bits: usize) -> Self {
+    pub unsafe fn from_raw_parts(ptr: *const B, rows: usize, row_bits: usize) -> Self {
         BitSubMatrix {
-            slice: slice::from_raw_parts(ptr, round_up_to_next(row_bits, BITS) / BITS * rows),
+            slice: slice::from_raw_parts(
+                ptr,
+                round_up_to_next(row_bits, B::bits()) / B::bits() * rows,
+            ),
             row_bits,
         }
     }
 
     /// Iterates over the matrix's rows in the form of immutable slices.
-    pub fn iter(&self) -> impl Iterator<Item = &BitSlice> {
-        fn f(arg: &[Block]) -> &BitSlice {
+    pub fn iter(&self) -> impl Iterator<Item = &BitSlice<B>> {
+        fn f<B: BitBlock>(arg: &[B]) -> &BitSlice<B> {
             unsafe { mem::transmute(arg) }
         }
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
-        self.slice.chunks(row_size).map(f)
+        let row_size = round_up_to_next(self.row_bits, B::bits()) / B::bits();
+        self.slice.chunks(row_size).map(f::<B>)
+    }
+
+    fn row_size(&self) -> usize {
+        round_up_to_next(self.row_bits, B::bits()) / B::bits()
     }
 }
 
-impl<'a> BitSubMatrixMut<'a> {
+impl<'a, B: BitBlock> BitSubMatrixMut<'a, B> {
     /// Returns a new `BitSubMatrixMut`.
-    pub fn new(slice: &mut [Block], row_bits: usize) -> BitSubMatrixMut<'_> {
+    pub(crate) fn new(slice: &mut [B], row_bits: usize) -> BitSubMatrixMut<'_, B> {
         BitSubMatrixMut { slice, row_bits }
     }
 
@@ -64,9 +71,12 @@ impl<'a> BitSubMatrixMut<'a> {
     ///
     /// Can construct an ill-formed value, thus the function is unsafe.
     #[inline]
-    pub unsafe fn from_raw_parts(ptr: *mut Block, rows: usize, row_bits: usize) -> Self {
+    pub unsafe fn from_raw_parts(ptr: *mut B, rows: usize, row_bits: usize) -> Self {
         BitSubMatrixMut {
-            slice: slice::from_raw_parts_mut(ptr, round_up_to_next(row_bits, BITS) / BITS * rows),
+            slice: slice::from_raw_parts_mut(
+                ptr,
+                round_up_to_next(row_bits, B::bits()) / B::bits() * rows,
+            ),
             row_bits,
         }
     }
@@ -74,8 +84,7 @@ impl<'a> BitSubMatrixMut<'a> {
     /// Returns the number of rows.
     #[inline]
     fn num_rows(&self) -> usize {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
-        self.slice.len().checked_div(row_size).unwrap_or(0)
+        self.slice.len().checked_div(self.row_size()).unwrap_or(0)
     }
 
     /// Returns the number of columns.
@@ -91,27 +100,26 @@ impl<'a> BitSubMatrixMut<'a> {
     /// Panics if `(row, col)` is out of bounds.
     #[inline]
     pub fn set(&mut self, row: usize, col: usize, enabled: bool) {
-        let row_size_in_bits = round_up_to_next(self.row_bits, BITS);
+        let row_size_in_bits = round_up_to_next(self.row_bits, B::bits());
         let bit = row * row_size_in_bits + col;
-        let (block, i) = div_rem(bit, BITS);
+        let (block, i) = div_rem(bit, B::bits());
         assert!(block < self.slice.len() && col < self.row_bits);
         unsafe {
             let elt = self.slice.get_unchecked_mut(block);
             if enabled {
-                *elt |= 1 << i;
+                *elt |= B::one() << i;
             } else {
-                *elt &= !(1 << i);
+                *elt = *elt & !(B::one() << i);
             }
         }
     }
 
     /// Returns a slice of the matrix's rows.
-    pub fn sub_matrix<R: RangeBounds<usize>>(&self, range: R) -> BitSubMatrix<'_> {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
+    pub fn sub_matrix<R: RangeBounds<usize>>(&self, range: R) -> BitSubMatrix<'_, B> {
         BitSubMatrix {
             slice: &self.slice[(
-                range.start_bound().map(|&s| s * row_size),
-                range.end_bound().map(|&e| e * row_size),
+                range.start_bound().map(|&s| s * self.row_size()),
+                range.end_bound().map(|&e| e * self.row_size()),
             )],
             row_bits: self.row_bits,
         }
@@ -123,7 +131,7 @@ impl<'a> BitSubMatrixMut<'a> {
     /// Functionally equivalent to `(self.sub_matrix(0..row), &self[row],
     /// self.sub_matrix(row..self.num_rows()))`.
     #[inline]
-    pub fn split_at(&self, row: usize) -> (BitSubMatrix<'_>, BitSubMatrix<'_>) {
+    pub fn split_at(&self, row: usize) -> (BitSubMatrix<'_, B>, BitSubMatrix<'_, B>) {
         (
             self.sub_matrix(0..row),
             self.sub_matrix(row..self.num_rows()),
@@ -133,9 +141,8 @@ impl<'a> BitSubMatrixMut<'a> {
     /// Given a row's index, returns a slice of all rows above that row, a reference to said row,
     /// and a slice of all rows below.
     #[inline]
-    pub fn split_at_mut(&mut self, row: usize) -> (BitSubMatrixMut<'_>, BitSubMatrixMut<'_>) {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
-        let (first, second) = self.slice.split_at_mut(row * row_size);
+    pub fn split_at_mut(&mut self, row: usize) -> (BitSubMatrixMut<'_, B>, BitSubMatrixMut<'_, B>) {
+        let (first, second) = self.slice.split_at_mut(row * self.row_size());
         (
             BitSubMatrixMut::new(first, self.row_bits),
             BitSubMatrixMut::new(second, self.row_bits),
@@ -194,47 +201,49 @@ impl<'a> BitSubMatrixMut<'a> {
     }
 
     /// Iterates over the matrix's rows in the form of mutable slices.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut BitSlice> {
-        fn f(arg: &mut [Block]) -> &mut BitSlice {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut BitSlice<B>> {
+        fn f<B: BitBlock>(arg: &mut [B]) -> &mut BitSlice<B> {
             unsafe { mem::transmute(arg) }
         }
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
-        self.slice.chunks_mut(row_size).map(f)
+        self.slice.chunks_mut(self.row_size()).map(f::<B>)
+    }
+
+    fn row_size(&self) -> usize {
+        round_up_to_next(self.row_bits, B::bits()) / B::bits()
     }
 }
 
 /// Returns the matrix's row in the form of a mutable slice.
-impl<'a> Index<usize> for BitSubMatrixMut<'a> {
-    type Output = BitSlice;
+impl<'a, B: BitBlock> Index<usize> for BitSubMatrixMut<'a, B> {
+    type Output = BitSlice<B>;
 
     #[inline]
-    fn index(&self, row: usize) -> &BitSlice {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
-        unsafe { mem::transmute(&self.slice[row * row_size..(row + 1) * row_size]) }
+    fn index(&self, row: usize) -> &Self::Output {
+        unsafe { mem::transmute(&self.slice[row * self.row_size()..(row + 1) * self.row_size()]) }
     }
 }
 
 /// Returns the matrix's row in the form of a mutable slice.
-impl<'a> IndexMut<usize> for BitSubMatrixMut<'a> {
+impl<'a, B: BitBlock> IndexMut<usize> for BitSubMatrixMut<'a, B> {
     #[inline]
-    fn index_mut(&mut self, row: usize) -> &mut BitSlice {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
+    fn index_mut(&mut self, row: usize) -> &mut Self::Output {
+        let row_size = self.row_size();
         unsafe { mem::transmute(&mut self.slice[row * row_size..(row + 1) * row_size]) }
     }
 }
 
 /// Returns the matrix's row in the form of a mutable slice.
-impl<'a> Index<usize> for BitSubMatrix<'a> {
-    type Output = BitSlice;
+impl<'a, B: BitBlock> Index<usize> for BitSubMatrix<'a, B> {
+    type Output = BitSlice<B>;
 
     #[inline]
-    fn index(&self, row: usize) -> &BitSlice {
-        let row_size = round_up_to_next(self.row_bits, BITS) / BITS;
+    fn index(&self, row: usize) -> &Self::Output {
+        let row_size = self.row_size();
         unsafe { mem::transmute(&self.slice[row * row_size..(row + 1) * row_size]) }
     }
 }
 
-impl<'a> fmt::Debug for BitSubMatrix<'a> {
+impl<'a, B: BitBlock> fmt::Debug for BitSubMatrix<'a, B> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         for row in self.iter() {
             for bit in row.iter_bits(self.row_bits) {

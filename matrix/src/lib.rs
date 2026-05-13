@@ -69,10 +69,9 @@
 #![cfg_attr(test, deny(warnings))]
 #![no_std]
 
-pub mod block;
-pub mod matrix;
-pub mod row;
-pub mod submatrix;
+mod matrix;
+mod row;
+mod submatrix;
 mod util;
 
 pub use matrix::BitMatrix;
@@ -83,8 +82,7 @@ pub static TRUE: bool = true;
 pub static FALSE: bool = false;
 
 pub(crate) mod local_prelude {
-    pub use crate::block::{Block, BITS};
-    // pub use crate::matrix::BitMatrix;
     pub use crate::row::BitSlice;
     pub use crate::submatrix::{BitSubMatrix, BitSubMatrixMut};
+    pub use bit_vec::{BitBlock, BitVec};
 }
