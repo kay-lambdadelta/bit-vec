@@ -227,7 +227,7 @@ fn bench_from_elem(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_erathostenes(b: &mut test::Bencher) {
+fn bench_eratosthenes(b: &mut test::Bencher) {
     let mut primes = vec![];
     b.iter(|| {
         primes.clear();
@@ -250,7 +250,7 @@ fn bench_erathostenes(b: &mut test::Bencher) {
 }
 
 #[bench]
-fn bench_erathostenes_set_all(b: &mut test::Bencher) {
+fn bench_eratosthenes_set_all(b: &mut test::Bencher) {
     let mut primes = vec![];
     let mut sieve = BitVec::from_elem(1 << 16, true);
     b.iter(|| {
