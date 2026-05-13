@@ -13,8 +13,8 @@ readme = "README.md"
 edition = "2021"
 
 [dependencies]
-borsh = { version = "1.5", default-features = false, features = ["derive"], optional = true }
-serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+borsh = { version = "1.6.0", default-features = false, features = ["derive"], optional = true }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"], optional = true }
 miniserde = { version = "0.1", optional = true }
 
 [dependencies.bit-vec]
@@ -32,10 +32,6 @@ std = ["bit-vec/std"]
 borsh = ["dep:borsh", "bit-vec/borsh"]
 serde = ["dep:serde", "bit-vec/serde"]
 miniserde = ["dep:miniserde", "bit-vec/miniserde"]
-
-serde_std = ["std", "serde/std"]
-serde_no_std = ["serde/alloc"]
-borsh_std = ["borsh/std"]
 
 [package.metadata.docs.rs]
 features = ["borsh", "serde", "miniserde"]
