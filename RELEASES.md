@@ -3,6 +3,8 @@ Version 0.10.0 (TO BE RELEASED)
 
 <a id="v0.10.0"></a>
 
+- removed nanoserde support
+
 Version 0.9.1
 ==========================
 

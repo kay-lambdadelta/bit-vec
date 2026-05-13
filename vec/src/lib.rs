@@ -102,17 +102,6 @@ use std::string::String;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
-#[cfg(feature = "borsh")]
-extern crate borsh;
-#[cfg(feature = "miniserde")]
-extern crate miniserde;
-#[cfg(feature = "nanoserde")]
-extern crate nanoserde;
-#[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "nanoserde")]
-use nanoserde::{DeBin, DeJson, DeRon, SerBin, SerJson, SerRon};
-
 #[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
@@ -122,6 +111,13 @@ use alloc::rc::Rc;
 use alloc::string::String;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
+#[cfg(feature = "borsh")]
+extern crate borsh;
+#[cfg(feature = "miniserde")]
+extern crate miniserde;
+#[cfg(feature = "serde")]
+extern crate serde;
 
 use core::cell::RefCell;
 use core::cmp;
@@ -212,10 +208,6 @@ fn reverse_bits(byte: u8) -> u8 {
 static TRUE: bool = true;
 static FALSE: bool = false;
 
-#[cfg(feature = "nanoserde")]
-#[allow(dead_code)]
-type B = u32;
-
 /// The bitvector type.
 ///
 /// # Examples
@@ -251,10 +243,6 @@ type B = u32;
 #[cfg_attr(
     feature = "miniserde",
     derive(miniserde::Deserialize, miniserde::Serialize)
-)]
-#[cfg_attr(
-    feature = "nanoserde",
-    derive(DeBin, DeJson, DeRon, SerBin, SerJson, SerRon)
 )]
 pub struct BitVec<B = u32> {
     /// Internal representation of the bit vector
@@ -3234,23 +3222,6 @@ mod tests {
         let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
         let serialized = miniserde::json::to_string(&bit_vec);
         let unserialized = miniserde::json::from_str(&serialized[..]).unwrap();
-        assert_eq!(bit_vec, unserialized);
-    }
-
-    #[cfg(feature = "nanoserde")]
-    #[test]
-    fn test_nanoserde_json_serialization() {
-        use nanoserde::{DeJson, SerJson};
-
-        let bit_vec: BitVec = BitVec::new();
-        let serialized = bit_vec.serialize_json();
-        let unserialized: BitVec = BitVec::deserialize_json(&serialized[..]).unwrap();
-        assert_eq!(bit_vec, unserialized);
-
-        let bools = vec![true, false, true, true];
-        let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
-        let serialized = bit_vec.serialize_json();
-        let unserialized = BitVec::deserialize_json(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
     }
 

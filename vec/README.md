@@ -64,9 +64,8 @@ If you want [borsh-rs](https://github.com/near/borsh-rs) support, include it lik
 bit-vec = { version = "0.10", features = ["borsh"] }
 ```
 
-Other available serialization libraries can be enabled with the
-[`miniserde`](https://github.com/dtolnay/miniserde) and
-[`nanoserde`](https://github.com/not-fl3/nanoserde) features.
+Another available serialization library can be enabled with the
+[`miniserde`](https://github.com/dtolnay/miniserde) feature.
 
 <!-- cargo-rdme start -->
 

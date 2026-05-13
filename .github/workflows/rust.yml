@@ -20,8 +20,6 @@ jobs:
       run: cargo test --verbose
     - name: Run miniserde tests
       run: cargo test --features miniserde --verbose
-    - name: Run nanoserde tests
-      run: cargo test --features nanoserde --verbose
     - name: Run borsh tests
       run: cargo test --features borsh --verbose
       
@@ -64,10 +62,9 @@ jobs:
       - run: cargo build
       - run: cargo test
       - run: cargo test --features serde
-      - run: cargo test --features nanoserde
       - run: cargo test --features miniserde
       - run: cargo test --features borsh
-      - run: cargo test --features borsh,serde,nanoserde
+      - run: cargo test --features borsh,serde,miniserde
 
   clippy:
     runs-on: ubuntu-latest
@@ -80,7 +77,6 @@ jobs:
       - run: cargo clippy --workspace --tests --examples
       - run: cargo clippy --workspace --tests --examples --features serde
       - run: cargo clippy --workspace --tests --examples --features miniserde
-      - run: cargo clippy --workspace --tests --examples --features nanoserde
       - run: cargo clippy --workspace --tests --examples --features borsh
 
   docs:
