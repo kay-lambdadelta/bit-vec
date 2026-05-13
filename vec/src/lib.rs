@@ -3215,7 +3215,7 @@ mod tests {
     fn test_miniserde_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = miniserde::json::to_string(&bit_vec);
-        let unserialized: BitVec<S> = miniserde::json::from_str(&serialized[..]).unwrap();
+        let unserialized = miniserde::json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
         let bools = vec![true, false, true, true];
@@ -3230,7 +3230,7 @@ mod tests {
     fn test_borsh_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = borsh::to_vec(&bit_vec).unwrap();
-        let unserialized: BitVec<S> = borsh::from_slice(&serialized[..]).unwrap();
+        let unserialized = borsh::from_slice(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
         let bools = vec![true, false, true, true];

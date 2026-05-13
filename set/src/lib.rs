@@ -57,15 +57,16 @@
 #[cfg(any(test, feature = "std"))]
 extern crate std;
 
+mod iter;
 mod set;
 mod util;
-mod iter;
 
 pub(crate) mod local_prelude {
     pub use bit_vec::{BitBlock, BitVec, Blocks};
     pub use core::cmp::Ordering;
-    pub use core::{hash, fmt, cmp};
     pub use core::iter::{self, Chain, Enumerate, FromIterator, Repeat, Skip, Take};
+    pub use core::{cmp, fmt, hash};
 }
 
+pub use bit_vec::BitBlock;
 pub use set::BitSet;

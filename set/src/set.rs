@@ -393,7 +393,6 @@ impl<B: BitBlock> BitSet<B> {
         bit_vec.shrink_to_fit();
     }
 
-
     /// Unions in-place with the specified other bit vector.
     ///
     /// # Examples

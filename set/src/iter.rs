@@ -1,4 +1,4 @@
-use crate::{local_prelude::*, set::BitSet};
+use crate::{local_prelude::*, BitSet};
 
 #[derive(Clone)]
 struct BlockIter<T, B: BitBlock> {
