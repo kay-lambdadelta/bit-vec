@@ -213,6 +213,7 @@ static TRUE: bool = true;
 static FALSE: bool = false;
 
 #[cfg(feature = "nanoserde")]
+#[allow(dead_code)]
 type B = u32;
 
 /// The bitvector type.
