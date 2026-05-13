@@ -4,8 +4,7 @@ use core::{mem, ops};
 
 use bit_vec::BitBlock;
 
-use super::{FALSE, TRUE};
-// use crate::local_prelude::*;
+use crate::local_prelude::*;
 use crate::util::div_rem;
 
 /// A slice of bit vector's blocks.
@@ -63,7 +62,6 @@ impl<Block: BitBlock> BitSlice<Block> {
                 (b >> i) & len_mask
             }
         }
-        .into()
     }
 }
 

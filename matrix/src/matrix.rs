@@ -3,7 +3,6 @@
 use core::cmp;
 use core::ops::{Index, IndexMut, RangeBounds};
 
-use super::{FALSE, TRUE};
 use crate::local_prelude::*;
 use crate::util::round_up_to_next;
 

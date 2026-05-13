@@ -10,3 +10,8 @@ pub fn round_up_to_next(unrounded: usize, target_alignment: usize) -> usize {
     assert!(target_alignment.is_power_of_two());
     (unrounded + target_alignment - 1) & !(target_alignment - 1)
 }
+
+/// A value for borrowing through the `Index` trait.
+pub static TRUE: bool = true;
+/// A value for borrowing through the `Index` trait.
+pub static FALSE: bool = false;

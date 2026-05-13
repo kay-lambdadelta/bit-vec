@@ -76,13 +76,9 @@ mod util;
 
 pub use matrix::BitMatrix;
 
-/// A value for borrowing through the `Index` trait.
-pub static TRUE: bool = true;
-/// A value for borrowing through the `Index` trait.
-pub static FALSE: bool = false;
-
 pub(crate) mod local_prelude {
     pub use crate::row::BitSlice;
     pub use crate::submatrix::{BitSubMatrix, BitSubMatrixMut};
+    pub use crate::util::{FALSE, TRUE};
     pub use bit_vec::{BitBlock, BitVec};
 }
