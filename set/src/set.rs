@@ -320,6 +320,16 @@ impl<B: BitBlock> BitSet<B> {
         &mut self.bit_vec
     }
 
+    /// # Safety
+    ///
+    /// Safe and upholds invariant if function `f` does not alter most
+    /// significant bits of the first argument where respective bits
+    /// in the second argument are equal 0.
+    ///
+    /// In other words, this is safe if `f` is XOR, OR, AND, but violates
+    /// invariant if it is XNOR, NAND.
+    ///
+    /// See the safety section below.
     #[inline]
     fn other_op<F>(&mut self, other: &Self, mut f: F)
     where
@@ -338,17 +348,24 @@ impl<B: BitBlock> BitSet<B> {
         }
 
         // virtually pad other with 0's for equal lengths
-        let other_words = {
-            let (_, result) = util::match_words(self_bit_vec, other_bit_vec);
-            result
-        };
+        let other_words = util::match_words(self_bit_vec, other_bit_vec).1;
+
+        debug_assert!(self_bit_vec.len() >= other_bit_vec.len());
 
         // Apply values found in other
         for (i, w) in other_words {
             let old = self_bit_vec.storage()[i];
             let new = f(old, w);
+            // Safety:
+            // We do not change the underlying Vec's size, so this is always ok.
+            // - What do we do to uphold the invariant for trailing bits?
+            // - We have a debug assert below that guards us against polluting
+            //   trailing bits.
             unsafe {
                 self_bit_vec.storage_mut()[i] = new;
+            }
+            if i == self_bit_vec.storage().len() - 1 && self_bit_vec.len() % B::bits() > 0 {
+                debug_assert!(new >> (self_bit_vec.len() % B::bits()) == B::zero());
             }
         }
     }
@@ -386,6 +403,11 @@ impl<B: BitBlock> BitSet<B> {
             .count();
         // Truncate away all empty trailing blocks, then shrink_to_fit
         let trunc_len = old_len - n;
+        // Safety:
+        // Those function calls may seem unsafe, but they are guaranteed
+        // not to introduce any memory unsafety.
+        // We set the correct length as a multiple of `B::bits()`,
+        // thus maintaining the trailing bit invariant.
         unsafe {
             bit_vec.storage_mut().truncate(trunc_len);
             bit_vec.set_len(trunc_len * B::bits());

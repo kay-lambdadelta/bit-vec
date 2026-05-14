@@ -16,12 +16,18 @@ impl<Block: BitBlock> BitSlice<Block> {
     /// Creates a new slice from a slice of blocks.
     #[inline]
     pub fn new(slice: &[Block]) -> &Self {
+        // Safety:
+        // This is the only way to construct a custom DST.
+        // We wish the layout of DSTs were defined.
         unsafe { mem::transmute(slice) }
     }
 
     /// Creates a new slice from a mutable slice of blocks.
     #[inline]
     pub fn new_mut(slice: &mut [Block]) -> &mut Self {
+        // Safety:
+        // This is the only way to construct a custom DST.
+        // We wish the layout of DSTs were defined.
         unsafe { mem::transmute(slice) }
     }
 

@@ -117,6 +117,7 @@ fn bench_bit_get_unchecked_small(b: &mut Bencher) {
     let bit_vec = black_box(bit_vec);
     b.iter(|| {
         for _ in 0..100 {
+            // Safety: This is just a benchmark of an unsafe fn.
             unsafe {
                 black_box(bit_vec.get_unchecked((r.next_u32() as usize) % size));
             }
@@ -135,6 +136,7 @@ fn bench_bit_get_unchecked_small_assume(b: &mut Bencher) {
     let bit_vec = black_box(bit_vec);
     b.iter(|| {
         for _ in 0..100 {
+            // Safety: This is just a benchmark with an unsafe fn call.
             unsafe {
                 let idx = (r.next_u32() as usize) % size;
                 ::std::hint::assert_unchecked(idx < bit_vec.len());

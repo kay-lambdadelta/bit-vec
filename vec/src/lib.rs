@@ -529,7 +529,8 @@ impl<B: BitBlock> BitVec<B> {
     ///
     /// # Safety
     ///
-    /// Can probably cause unsafety. Only really intended for `BitSet`.
+    /// Can break the structure's invariants despite not
+    /// giving real memory unsafety. Only really intended for `BitSet`.
     #[inline]
     pub unsafe fn storage_mut(&mut self) -> &mut Vec<B> {
         &mut self.storage
@@ -643,6 +644,9 @@ impl<B: BitBlock> BitVec<B> {
     /// use bit_vec::BitVec;
     ///
     /// let bv = BitVec::from_bytes(&[0b01100000]);
+    /// // Safety:
+    /// // We access the structure with in-bounds indices (those smaller
+    /// // than 32).
     /// unsafe {
     ///     assert_eq!(bv.get_unchecked(0), false);
     ///     assert_eq!(bv.get_unchecked(1), true);

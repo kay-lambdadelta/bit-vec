@@ -48,6 +48,9 @@ impl<'a, B: BitBlock> BitSubMatrix<'a, B> {
     /// Iterates over the matrix's rows in the form of immutable slices.
     pub fn iter(&self) -> impl Iterator<Item = &BitSlice<B>> {
         fn f<B: BitBlock>(arg: &[B]) -> &BitSlice<B> {
+            // Safety:
+            // This is currently the only way to construct a custom DST.
+            // We wish the layout of DSTs were defined.
             unsafe { mem::transmute(arg) }
         }
         let row_size = round_up_to_next(self.row_bits, B::bits()) / B::bits();
@@ -103,8 +106,35 @@ impl<'a, B: BitBlock> BitSubMatrixMut<'a, B> {
         let row_size_in_bits = round_up_to_next(self.row_bits, B::bits());
         let bit = row * row_size_in_bits + col;
         let (block, i) = div_rem(bit, B::bits());
-        assert!(block < self.slice.len() && col < self.row_bits);
+        assert!(
+            block < self.slice.len() && col < self.row_bits,
+            "invalid index given to `BitSubMatrixMut::set`"
+        );
         unsafe {
+            // Safety:
+            // We check for `block` being within bounds in the assert above.
+            let elt = self.slice.get_unchecked_mut(block);
+            if enabled {
+                *elt |= B::one() << i;
+            } else {
+                *elt = *elt & !(B::one() << i);
+            }
+        }
+    }
+
+    /// Sets the value of a bit. The first argument is the row number.
+    ///
+    /// # Safety
+    ///
+    /// Unsafe if `(row, col)` is out of bounds.
+    #[inline]
+    pub unsafe fn set_unchecked(&mut self, row: usize, col: usize, enabled: bool) {
+        let row_size_in_bits = round_up_to_next(self.row_bits, B::bits());
+        let bit = row * row_size_in_bits + col;
+        let (block, i) = div_rem(bit, B::bits());
+        unsafe {
+            // Safety:
+            // Unsafe if `(row, col)` is out of bounds.
             let elt = self.slice.get_unchecked_mut(block);
             if enabled {
                 *elt |= B::one() << i;
@@ -203,6 +233,9 @@ impl<'a, B: BitBlock> BitSubMatrixMut<'a, B> {
     /// Iterates over the matrix's rows in the form of mutable slices.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut BitSlice<B>> {
         fn f<B: BitBlock>(arg: &mut [B]) -> &mut BitSlice<B> {
+            // Safety:
+            // This is currently the only way to construct a custom DST.
+            // We wish the layout of DSTs were defined.
             unsafe { mem::transmute(arg) }
         }
         self.slice.chunks_mut(self.row_size()).map(f::<B>)
@@ -219,6 +252,9 @@ impl<'a, B: BitBlock> Index<usize> for BitSubMatrixMut<'a, B> {
 
     #[inline]
     fn index(&self, row: usize) -> &Self::Output {
+        // Safety:
+        // This is currently the only way to construct a custom DST.
+        // We wish the layout of DSTs were defined.
         unsafe { mem::transmute(&self.slice[row * self.row_size()..(row + 1) * self.row_size()]) }
     }
 }
@@ -228,6 +264,9 @@ impl<'a, B: BitBlock> IndexMut<usize> for BitSubMatrixMut<'a, B> {
     #[inline]
     fn index_mut(&mut self, row: usize) -> &mut Self::Output {
         let row_size = self.row_size();
+        // Safety:
+        // This is currently the only way to construct a custom DST.
+        // We wish the layout of DSTs were defined.
         unsafe { mem::transmute(&mut self.slice[row * row_size..(row + 1) * row_size]) }
     }
 }
@@ -239,6 +278,9 @@ impl<'a, B: BitBlock> Index<usize> for BitSubMatrix<'a, B> {
     #[inline]
     fn index(&self, row: usize) -> &Self::Output {
         let row_size = self.row_size();
+        // Safety:
+        // This is currently the only way to construct a custom DST.
+        // We wish the layout of DSTs were defined.
         unsafe { mem::transmute(&self.slice[row * row_size..(row + 1) * row_size]) }
     }
 }

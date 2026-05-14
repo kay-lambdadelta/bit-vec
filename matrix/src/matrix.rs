@@ -208,6 +208,8 @@ impl<B: BitBlock> IndexMut<usize> for BitMatrix<B> {
     #[inline]
     fn index_mut(&mut self, row: usize) -> &mut Self::Output {
         let row_size = round_up_to_next(self.row_bits, B::bits()) / B::bits();
+        // Safety:
+        // This does not introduce any memory unsafety despite the `unsafe` keyword.
         unsafe {
             BitSlice::new_mut(&mut self.bit_vec.storage_mut()[row * row_size..(row + 1) * row_size])
         }
