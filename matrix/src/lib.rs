@@ -68,7 +68,6 @@
 )]
 #![cfg_attr(test, deny(warnings))]
 #![no_std]
-
 #![deny(clippy::shadow_reuse)]
 #![deny(clippy::shadow_same)]
 #![deny(clippy::shadow_unrelated)]

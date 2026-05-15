@@ -50,7 +50,6 @@
 //! ```
 #![doc(html_root_url = "https://docs.rs/bit-set/0.8.0")]
 #![no_std]
-
 #![deny(clippy::shadow_reuse)]
 #![deny(clippy::shadow_same)]
 #![deny(clippy::shadow_unrelated)]
