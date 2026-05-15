@@ -102,19 +102,6 @@ use std::string::String;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
-#[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-#[cfg(feature = "borsh")]
-extern crate borsh;
-#[cfg(feature = "miniserde")]
-extern crate miniserde;
-#[cfg(feature = "nanoserde")]
-extern crate nanoserde;
-#[cfg(feature = "nanoserde")]
-use nanoserde::{DeBin, DeJson, DeRon, SerBin, SerJson, SerRon};
-
 #[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
@@ -125,16 +112,21 @@ use alloc::string::String;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+#[cfg(feature = "borsh")]
+extern crate borsh;
+#[cfg(feature = "miniserde")]
+extern crate miniserde;
+#[cfg(feature = "serde")]
+extern crate serde;
+
+mod util;
+
 use core::cell::RefCell;
-use core::cmp;
 use core::cmp::Ordering;
-use core::fmt::{self, Write};
-use core::hash;
-use core::iter::repeat;
+use core::fmt::Write;
 use core::iter::FromIterator;
-use core::mem;
 use core::ops::*;
-use core::slice;
+use core::{cmp, fmt, hash, iter, mem, slice};
 
 type MutBlocks<'a, B> = slice::IterMut<'a, B>;
 
@@ -203,20 +195,6 @@ bit_block_impl! {
     (usize, core::mem::size_of::<usize>() * 8)
 }
 
-fn reverse_bits(byte: u8) -> u8 {
-    let mut result = 0;
-    for i in 0..u8::bits() {
-        result |= ((byte >> i) & 1) << (u8::bits() - 1 - i);
-    }
-    result
-}
-
-static TRUE: bool = true;
-static FALSE: bool = false;
-
-#[cfg(feature = "nanoserde")]
-type B = u32;
-
 /// The bitvector type.
 ///
 /// # Examples
@@ -244,7 +222,7 @@ type B = u32;
 /// println!("{:?}", bv);
 /// println!("total bits set to true: {}", bv.iter().filter(|x| *x).count());
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "borsh",
     derive(borsh::BorshDeserialize, borsh::BorshSerialize)
@@ -252,10 +230,6 @@ type B = u32;
 #[cfg_attr(
     feature = "miniserde",
     derive(miniserde::Deserialize, miniserde::Serialize)
-)]
-#[cfg_attr(
-    feature = "nanoserde",
-    derive(DeBin, DeJson, DeRon, SerBin, SerJson, SerRon)
 )]
 pub struct BitVec<B = u32> {
     /// Internal representation of the bit vector
@@ -271,9 +245,9 @@ impl<B: BitBlock> Index<usize> for BitVec<B> {
     #[inline]
     fn index(&self, i: usize) -> &bool {
         if self.get(i).expect("index out of bounds") {
-            &TRUE
+            &util::TRUE
         } else {
-            &FALSE
+            &util::FALSE
         }
     }
 }
@@ -468,7 +442,8 @@ impl<B: BitBlock> BitVec<B> {
         for i in 0..complete_words {
             let mut accumulator = B::zero();
             for idx in 0..B::bytes() {
-                accumulator |= B::from_byte(reverse_bits(bytes[i * B::bytes() + idx])) << (idx * 8)
+                accumulator |=
+                    B::from_byte(util::reverse_bits(bytes[i * B::bytes() + idx])) << (idx * 8)
             }
             bit_vec.storage.push(accumulator);
         }
@@ -476,7 +451,7 @@ impl<B: BitBlock> BitVec<B> {
         if extra_bytes > 0 {
             let mut last_word = B::zero();
             for (i, &byte) in bytes[complete_words * B::bytes()..].iter().enumerate() {
-                last_word |= B::from_byte(reverse_bits(byte)) << (i * 8);
+                last_word |= B::from_byte(util::reverse_bits(byte)) << (i * 8);
             }
             bit_vec.storage.push(last_word);
         }
@@ -520,7 +495,7 @@ impl<B: BitBlock> BitVec<B> {
         let mut changed_bits = B::zero();
         for (a, b) in self.blocks_mut().zip(other.blocks()) {
             let w = op(*a, b);
-            changed_bits = changed_bits | (*a ^ w);
+            changed_bits |= *a ^ w;
             *a = w;
         }
         changed_bits != B::zero()
@@ -554,7 +529,8 @@ impl<B: BitBlock> BitVec<B> {
     ///
     /// # Safety
     ///
-    /// Can probably cause unsafety. Only really intended for `BitSet`.
+    /// Can break the structure's invariants despite not
+    /// giving real memory unsafety. Only really intended for `BitSet`.
     #[inline]
     pub unsafe fn storage_mut(&mut self) -> &mut Vec<B> {
         &mut self.storage
@@ -598,7 +574,7 @@ impl<B: BitBlock> BitVec<B> {
     /// to implement when unused bits are all set to 1s.
     fn fix_last_block_with_ones(&mut self) {
         if let Some((last_block, used_bits)) = self.last_block_mut_with_mask() {
-            *last_block = *last_block | !used_bits;
+            *last_block |= !used_bits;
         }
     }
 
@@ -668,6 +644,9 @@ impl<B: BitBlock> BitVec<B> {
     /// use bit_vec::BitVec;
     ///
     /// let bv = BitVec::from_bytes(&[0b01100000]);
+    /// // Safety:
+    /// // We access the structure with in-bounds indices (those smaller
+    /// // than 32).
     /// unsafe {
     ///     assert_eq!(bv.get_unchecked(0), false);
     ///     assert_eq!(bv.get_unchecked(1), true);
@@ -1271,7 +1250,7 @@ impl<B: BitBlock> BitVec<B> {
             for block in other.storage.drain(..) {
                 {
                     let last = self.storage.last_mut().unwrap();
-                    *last = *last | (block << b);
+                    *last |= block << b;
                 }
                 self.storage.push(block >> (B::bits() - b));
             }
@@ -1405,18 +1384,6 @@ impl<B: BitBlock> BitVec<B> {
     /// assert_eq!(bv.to_bytes(), [0b00100000, 0b10000000]);
     /// ```
     pub fn to_bytes(&self) -> Vec<u8> {
-        static REVERSE_TABLE: [u8; 256] = {
-            let mut tbl = [0u8; 256];
-            let mut i: u8 = 0;
-            loop {
-                tbl[i as usize] = i.reverse_bits();
-                if i == 255 {
-                    break;
-                }
-                i += 1;
-            }
-            tbl
-        };
         self.ensure_invariant();
 
         let len = self.nbits / 8 + if self.nbits % 8 == 0 { 0 } else { 1 };
@@ -1430,7 +1397,7 @@ impl<B: BitBlock> BitVec<B> {
                     byte |= 1 << bit_idx;
                 }
             }
-            result.push(REVERSE_TABLE[byte as usize]);
+            result.push(util::reverse_bits(byte));
         }
 
         result
@@ -1598,7 +1565,7 @@ impl<B: BitBlock> BitVec<B> {
             let mask = mask_for_bits::<B>(self.nbits);
             if value {
                 let block = &mut self.storage[num_cur_blocks - 1];
-                *block = *block | !mask;
+                *block |= !mask;
             } else {
                 // Extra bits are already zero by invariant.
             }
@@ -1613,7 +1580,7 @@ impl<B: BitBlock> BitVec<B> {
         // Allocate new words, if needed
         if new_nblocks > self.storage.len() {
             let to_add = new_nblocks - self.storage.len();
-            self.storage.extend(repeat(full_value).take(to_add));
+            self.storage.extend(iter::repeat_n(full_value, to_add));
         }
 
         // Adjust internal bit count
@@ -1923,7 +1890,7 @@ impl<B: BitBlock> BitVec<B> {
 
         self.nbits += 1;
 
-        self.storage[block_at] = self.storage[block_at] | flag; // set the bit
+        self.storage[block_at] |= flag; // set the bit
 
         Ok(())
     }
@@ -3213,11 +3180,11 @@ mod tests {
     fn test_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = serde_json::to_string(&bit_vec).unwrap();
-        let unserialized: BitVec = serde_json::from_str(&serialized).unwrap();
+        let unserialized: BitVec = serde_json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
-        let bools = vec![true, false, true, true];
-        let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
+        let bools = [true, false, true, true];
+        let bit_vec: BitVec = bools.iter().copied().collect();
         let serialized = serde_json::to_string(&bit_vec).unwrap();
         let unserialized = serde_json::from_str(&serialized).unwrap();
         assert_eq!(bit_vec, unserialized);
@@ -3228,30 +3195,13 @@ mod tests {
     fn test_miniserde_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = miniserde::json::to_string(&bit_vec);
-        let unserialized: BitVec = miniserde::json::from_str(&serialized[..]).unwrap();
-        assert_eq!(bit_vec, unserialized);
-
-        let bools = vec![true, false, true, true];
-        let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
-        let serialized = miniserde::json::to_string(&bit_vec);
         let unserialized = miniserde::json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
-    }
 
-    #[cfg(feature = "nanoserde")]
-    #[test]
-    fn test_nanoserde_json_serialization() {
-        use nanoserde::{DeJson, SerJson};
-
-        let bit_vec: BitVec = BitVec::new();
-        let serialized = bit_vec.serialize_json();
-        let unserialized: BitVec = BitVec::deserialize_json(&serialized[..]).unwrap();
-        assert_eq!(bit_vec, unserialized);
-
-        let bools = vec![true, false, true, true];
-        let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
-        let serialized = bit_vec.serialize_json();
-        let unserialized = BitVec::deserialize_json(&serialized[..]).unwrap();
+        let bools = [true, false, true, true];
+        let bit_vec: BitVec = bools.iter().copied().collect();
+        let serialized = miniserde::json::to_string(&bit_vec);
+        let unserialized = miniserde::json::from_str(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
     }
 
@@ -3260,11 +3210,11 @@ mod tests {
     fn test_borsh_serialization() {
         let bit_vec: BitVec = BitVec::new();
         let serialized = borsh::to_vec(&bit_vec).unwrap();
-        let unserialized: BitVec = borsh::from_slice(&serialized[..]).unwrap();
+        let unserialized = borsh::from_slice(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
 
-        let bools = vec![true, false, true, true];
-        let bit_vec: BitVec = bools.iter().map(|n| *n).collect();
+        let bools = [true, false, true, true];
+        let bit_vec: BitVec = bools.iter().copied().collect();
         let serialized = borsh::to_vec(&bit_vec).unwrap();
         let unserialized = borsh::from_slice(&serialized[..]).unwrap();
         assert_eq!(bit_vec, unserialized);
