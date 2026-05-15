@@ -49,10 +49,15 @@
 //! assert!(bv[3]);
 //! ```
 #![doc(html_root_url = "https://docs.rs/bit-set/0.8.0")]
+#![no_std]
+
 #![deny(clippy::shadow_reuse)]
 #![deny(clippy::shadow_same)]
 #![deny(clippy::shadow_unrelated)]
-#![no_std]
+#![warn(clippy::multiple_inherent_impl)]
+#![warn(clippy::multiple_crate_versions)]
+#![warn(clippy::single_match)]
+#![warn(clippy::missing_safety_doc)]
 
 #[cfg(any(test, feature = "std"))]
 extern crate std;

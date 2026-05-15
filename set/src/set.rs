@@ -134,6 +134,7 @@ impl BitSet<u32> {
     }
 }
 
+#[allow(clippy::multiple_inherent_impl)]
 impl<B: BitBlock> BitSet<B> {
     /// Creates a new empty `BitSet`.
     ///

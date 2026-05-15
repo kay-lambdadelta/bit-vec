@@ -69,6 +69,14 @@
 #![cfg_attr(test, deny(warnings))]
 #![no_std]
 
+#![deny(clippy::shadow_reuse)]
+#![deny(clippy::shadow_same)]
+#![deny(clippy::shadow_unrelated)]
+#![warn(clippy::multiple_inherent_impl)]
+#![warn(clippy::multiple_crate_versions)]
+#![warn(clippy::single_match)]
+#![warn(clippy::missing_safety_doc)]
+
 mod matrix;
 mod row;
 mod submatrix;

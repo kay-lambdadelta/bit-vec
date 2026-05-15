@@ -21,6 +21,7 @@ where
     }
 }
 
+#[allow(clippy::multiple_inherent_impl)]
 impl<B: BitBlock> BitSet<B> {
     /// Iterator over each usize stored in `self` union `other`.
     /// See [`union_with`] for an efficient in-place version.
