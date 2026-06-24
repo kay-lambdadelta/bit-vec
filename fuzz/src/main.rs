@@ -20,6 +20,12 @@ macro_rules! next_u8 {
     };
 }
 
+macro_rules! next_string {
+    ($b:ident) => {
+        String::from_utf8((0 .. next_u8!($b)).map(|_| $b.next().unwrap_or(0) & 0b_01_11_11_11).collect::<Vec<_>>()).expect("why do we have unicode where we shouldn't?")
+    };
+}
+
 fn black_box_bit_vec<T: BitBlock>(s: &BitVec<T>) {
     // print to work as a black_box
     print!("{}", s);
@@ -30,13 +36,13 @@ fn black_box_bit_set<T: BitBlock>(s: &BitSet<T>) {
     print!("{}", s);
 }
 
-fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
+fn do_test<T: BitBlock + for<'de> serde::Deserialize<'de> + serde::Serialize>(data: &[u8]) -> BitVec<T> {
     let mut v = BitVec::<T>::new_general();
 
     let mut bytes = data.iter().copied();
 
     while let Some(op) = bytes.next() {
-        match op % 23 {
+        match op % 25 {
             0 => {
                 v = BitVec::new_general();
             }
@@ -119,6 +125,17 @@ fn do_test<T: BitBlock>(data: &[u8]) -> BitVec<T> {
             }
             22 => {
                 v.fill(true);
+            }
+            23 => {
+                let json = serde_json::to_string(&v).unwrap();
+                let deserialized = serde_json::from_str(&json[..]).unwrap();
+                assert_eq!(v, deserialized);
+            }
+            24 => {
+                let input_str = next_string!(bytes);
+                if let Ok(deserialized) = serde_json::from_str(&input_str[..]) {
+                    v = deserialized;
+                }
             }
             _ => panic!("booo"),
         }
@@ -209,7 +226,7 @@ fn do_test_all(data: &[u8]) {
     do_test_set::<u8>(data);
     do_test_set::<u16>(data);
     do_test_set::<u64>(data);
-    // do_test_set::<u32, SmallVec<[u32; 8]>>(data);
+    // do_test_set::<u32, SmallVec<[str; 8]>>(data);
     // do_test_set::<u16, Vec<u16>>(data);
 }
 

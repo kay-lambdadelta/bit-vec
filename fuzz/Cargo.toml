@@ -12,15 +12,17 @@ cargo-fuzz = true
 default = ["afl"]
 afl_fuzz = ["afl"]
 honggfuzz_fuzz = ["honggfuzz"]
+# hack to make vscode happy
+serde = []
+miniserde = []
+borsh = []
 
 [dependencies]
 honggfuzz = { version = "0.5", optional = true }
 afl = { version = "0.17", optional = true }
-bit-vec = { path = "../vec/" }
+bit-vec = { path = "../vec/", features = ["serde", "borsh", "miniserde"] }
 bit-set = { path = "../set/" }
 bit-matrix = { path = "../matrix/" }
 # smallvec = "1.15"
-
-[[bin]]
-name = "bit_ops"
-path = "fuzz_targets/bit_ops.rs"
+serde = "1.0"
+serde_json = "1.0"
