@@ -1,7 +1,7 @@
 //! Simple fuzzer testing all available `BitVec`, `BitSet` and `BitMatrix` operations
 
-use bit_vec::{BitBlock, BitVec};
 use bit_set::BitSet;
+use bit_vec::{BitBlock, BitVec};
 // use smallvec::SmallVec;
 
 // There's no point growing too much, so try not to grow
@@ -22,7 +22,12 @@ macro_rules! next_u8 {
 
 macro_rules! next_string {
     ($b:ident) => {
-        String::from_utf8((0 .. next_u8!($b)).map(|_| $b.next().unwrap_or(0) & 0b_01_11_11_11).collect::<Vec<_>>()).expect("why do we have unicode where we shouldn't?")
+        String::from_utf8(
+            (0..next_u8!($b))
+                .map(|_| $b.next().unwrap_or(0) & 0b_01_11_11_11)
+                .collect::<Vec<_>>(),
+        )
+        .expect("why do we have unicode where we shouldn't?")
     };
 }
 
@@ -36,7 +41,9 @@ fn black_box_bit_set<T: BitBlock>(s: &BitSet<T>) {
     print!("{}", s);
 }
 
-fn do_test<T: BitBlock + for<'de> serde::Deserialize<'de> + serde::Serialize>(data: &[u8]) -> BitVec<T> {
+fn do_test<T: BitBlock + for<'de> serde::Deserialize<'de> + serde::Serialize>(
+    data: &[u8],
+) -> BitVec<T> {
     let mut v = BitVec::<T>::new_general();
 
     let mut bytes = data.iter().copied();
