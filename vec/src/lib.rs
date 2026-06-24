@@ -95,7 +95,9 @@
 #[cfg(any(test, feature = "std"))]
 #[macro_use]
 extern crate std;
-use core::error::Error;
+
+#[cfg(all(feature = "std", feature = "borsh"))]
+use std::borrow::ToOwned;
 #[cfg(all(feature = "std", feature = "miniserde"))]
 use std::boxed::Box;
 #[cfg(feature = "std")]
@@ -108,6 +110,8 @@ use std::vec::Vec;
 #[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
+#[cfg(all(not(feature = "std"), feature = "borsh"))]
+use alloc::borrow::ToOwned;
 #[cfg(all(not(feature = "std"), feature = "miniserde"))]
 use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
@@ -116,6 +120,8 @@ use alloc::rc::Rc;
 use alloc::string::String;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
+use core::error::Error;
 
 #[cfg(feature = "borsh")]
 extern crate borsh;
@@ -277,7 +283,7 @@ impl<B: BitBlock> borsh::BorshDeserialize for BitVec<B>
 where
     B: borsh::BorshDeserialize,
 {
-    fn deserialize_reader<R: std::io::prelude::Read>(reader: &mut R) -> std::io::Result<Self> {
+    fn deserialize_reader<R: borsh::io::Read>(reader: &mut R) -> borsh::io::Result<Self> {
         UncheckedBitVec::<B>::deserialize_reader(reader).and_then(|unchecked| {
             let result = BitVec {
                 storage: unchecked.storage,
@@ -362,15 +368,21 @@ pub enum DeserializeError {
 
 impl core::fmt::Display for DeserializeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            DeserializeError::OutOfBounds => "nbits is out of bounds for storage",
-            DeserializeError::TrailingBits => "some out of bounds trailing bits are set",
-        })
+        f.write_str(self.simple_description())
     }
 }
 
-impl Error for DeserializeError {
-    fn description(&self) -> &str {
+#[cfg(feature = "borsh")]
+impl From<DeserializeError> for String {
+    fn from(value: DeserializeError) -> Self {
+        value.simple_description().to_owned()
+    }
+}
+
+impl Error for DeserializeError {}
+
+impl DeserializeError {
+    fn simple_description(&self) -> &str {
         match self {
             DeserializeError::OutOfBounds => "nbits is out of bounds for storage",
             DeserializeError::TrailingBits => "some out of bounds trailing bits are set",
