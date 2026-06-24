@@ -1,8 +1,11 @@
-Version 0.10.0 (TO BE RELEASED)
+Version 0.10.0 (VULNERABILITY FIX) (TO BE RELEASED)
 ==========================
 
 <a id="v0.10.0"></a>
 
+- fixed a soundness issue where `deserialize`ing from an untrusted source
+  could make `fn get_unchecked` perform undefined behavior, and could make
+  other functions return incorrect results
 - removed nanoserde support
 
 Version 0.9.1
