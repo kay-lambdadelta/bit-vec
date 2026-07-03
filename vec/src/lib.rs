@@ -267,10 +267,10 @@ where
                 storage: unchecked.storage,
                 nbits: unchecked.nbits,
             };
-            if !result.is_last_block_fixed() {
+            if !result.storage_len_matches_nbits() {
+                Err(D::Error::custom(DeserializeError::StorageLenMismatch))
+            } else if !result.is_last_block_fixed() {
                 Err(D::Error::custom(DeserializeError::TrailingBits))
-            } else if !result.is_nbits_in_bounds() {
-                Err(D::Error::custom(DeserializeError::OutOfBounds))
             } else {
                 Ok(result)
             }
@@ -289,10 +289,10 @@ where
                 storage: unchecked.storage,
                 nbits: unchecked.nbits,
             };
-            if !result.is_last_block_fixed() {
+            if !result.storage_len_matches_nbits() {
+                Err(borsh::io::Error::other(DeserializeError::StorageLenMismatch))
+            } else if !result.is_last_block_fixed() {
                 Err(borsh::io::Error::other(DeserializeError::TrailingBits))
-            } else if !result.is_nbits_in_bounds() {
-                Err(borsh::io::Error::other(DeserializeError::OutOfBounds))
             } else {
                 Ok(result)
             }
@@ -341,7 +341,7 @@ where
         let storage = self.storage.take().ok_or(miniserde::Error)?;
         let nbits = self.nbits.take().ok_or(miniserde::Error)?;
         let result = BitVec { storage, nbits };
-        if !result.is_last_block_fixed() || !result.is_nbits_in_bounds() {
+        if !result.storage_len_matches_nbits() || !result.is_last_block_fixed() {
             Err(miniserde::Error)
         } else {
             *self.out = Some(result);
@@ -362,8 +362,8 @@ where
 
 #[derive(Debug)]
 pub enum DeserializeError {
+    StorageLenMismatch,
     TrailingBits,
-    OutOfBounds,
 }
 
 impl core::fmt::Display for DeserializeError {
@@ -384,8 +384,8 @@ impl Error for DeserializeError {}
 impl DeserializeError {
     fn simple_description(&self) -> &str {
         match self {
-            DeserializeError::OutOfBounds => "nbits is out of bounds for storage",
             DeserializeError::TrailingBits => "some out of bounds trailing bits are set",
+            DeserializeError::StorageLenMismatch => "nbits and storage length isnt same",
         }
     }
 }
@@ -740,8 +740,8 @@ impl<B: BitBlock> BitVec<B> {
     }
 
     /// Checks whether our `nbits` fits within our storage.
-    fn is_nbits_in_bounds(&self) -> bool {
-        self.nbits as u64 <= self.storage.len() as u64 * B::bits() as u64
+    fn storage_len_matches_nbits(&self) -> bool {
+        self.storage.len() == blocks_for_bits::<B>(self.nbits)
     }
 
     /// Ensure the invariant for the last block.
@@ -754,8 +754,8 @@ impl<B: BitBlock> BitVec<B> {
     #[inline]
     fn ensure_invariant(&self) {
         if cfg!(test) {
+            debug_assert!(self.storage_len_matches_nbits());
             debug_assert!(self.is_last_block_fixed());
-            debug_assert!(self.is_nbits_in_bounds());
         }
     }
 
