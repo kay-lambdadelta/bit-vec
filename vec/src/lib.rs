@@ -290,7 +290,9 @@ where
                 nbits: unchecked.nbits,
             };
             if !result.storage_len_matches_nbits() {
-                Err(borsh::io::Error::other(DeserializeError::StorageLenMismatch))
+                Err(borsh::io::Error::other(
+                    DeserializeError::StorageLenMismatch,
+                ))
             } else if !result.is_last_block_fixed() {
                 Err(borsh::io::Error::other(DeserializeError::TrailingBits))
             } else {

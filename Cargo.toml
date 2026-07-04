@@ -10,7 +10,7 @@ members = [
 default-members = [
     "vec",
     "set",
-    "matrix"
+    "matrix",
 ]
 
 resolver = "2"
