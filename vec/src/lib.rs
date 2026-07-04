@@ -399,9 +399,9 @@ impl<B: BitBlock> Index<usize> for BitVec<B> {
     #[inline]
     fn index(&self, i: usize) -> &bool {
         if self.get(i).expect("index out of bounds") {
-            &util::TRUE
+            &true
         } else {
-            &util::FALSE
+            &false
         }
     }
 }
