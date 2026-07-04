@@ -8,7 +8,7 @@
 [![crates.io][crates.io shield]][crates.io link]
 [![Documentation][docs.rs badge]][docs.rs link]
 ![Rust CI][github ci badge]
-![MSRV][rustc 1.82+]
+![MSRV][rustc 1.85+]
 <br />
 <br />
 [![Dependency Status][deps.rs status]][deps.rs link]
@@ -19,12 +19,12 @@
 
 [crates.io shield]: https://img.shields.io/crates/v/bit-matrix?label=latest
 [crates.io link]: https://crates.io/crates/bit-matrix
-[docs.rs badge]: https://docs.rs/bit-matrix/badge.svg?version=0.8.1
-[docs.rs link]: https://docs.rs/bit-matrix/0.8.1/bit-matrix/
+[docs.rs badge]: https://docs.rs/bit-matrix/badge.svg?version=0.10.0
+[docs.rs link]: https://docs.rs/bit-matrix/0.10.0/bit-matrix/
 [github ci badge]: https://github.com/pczarn/bit-matrix/workflows/CI/badge.svg?branch=master
-[rustc 1.82+]: https://img.shields.io/badge/rustc-1.82%2B-blue.svg
-[deps.rs status]: https://deps.rs/crate/bit-matrix/0.8.1/status.svg
-[deps.rs link]: https://deps.rs/crate/bit-matrix/0.8.1
+[rustc 1.85+]: https://img.shields.io/badge/rustc-1.85%2B-blue.svg
+[deps.rs status]: https://deps.rs/crate/bit-matrix/0.10.0/status.svg
+[deps.rs link]: https://deps.rs/crate/bit-matrix/0.10.0
 [shields.io download count]: https://img.shields.io/crates/d/bit-matrix.svg
 
 Rust library that implements bit matrices.
