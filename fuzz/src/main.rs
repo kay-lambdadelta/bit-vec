@@ -16,7 +16,12 @@ macro_rules! next_usize {
 
 macro_rules! next_usize_u32 {
     ($b:ident) => {
-        u32::from_le_bytes([$b.next().unwrap_or(0), $b.next().unwrap_or(0), $b.next().unwrap_or(0), $b.next().unwrap_or(0)]) as usize
+        u32::from_le_bytes([
+            $b.next().unwrap_or(0),
+            $b.next().unwrap_or(0),
+            $b.next().unwrap_or(0),
+            $b.next().unwrap_or(0),
+        ]) as usize
     };
 }
 
@@ -46,19 +51,17 @@ macro_rules! next_slice {
 }
 
 macro_rules! next_c_string {
-    ($b:ident) => {
-        {
-            let mut result = String::new();
-            while let Some(ch) = $b.next() {
-                if ch == 0 {
-                    break;
-                } else {
-                    result.push(ch as char);
-                }
+    ($b:ident) => {{
+        let mut result = String::new();
+        while let Some(ch) = $b.next() {
+            if ch == 0 {
+                break;
+            } else {
+                result.push(ch as char);
             }
-            result
         }
-    };
+        result
+    }};
 }
 
 fn black_box_bit_vec<T: BitBlock>(s: &BitVec<T>) {
@@ -71,10 +74,14 @@ fn black_box_bit_set<T: BitBlock>(s: &BitSet<T>) {
     print!("{}", s);
 }
 
-fn do_test<T>(
-    data: &[u8],
-) -> BitVec<T>
-    where T: BitBlock + for<'de> serde::Deserialize<'de> + serde::Serialize + miniserde::Deserialize + miniserde::Serialize + borsh::BorshDeserialize
+fn do_test<T>(data: &[u8]) -> BitVec<T>
+where
+    T: BitBlock
+        + for<'de> serde::Deserialize<'de>
+        + serde::Serialize
+        + miniserde::Deserialize
+        + miniserde::Serialize
+        + borsh::BorshDeserialize,
 {
     let mut v = BitVec::<T>::new_general();
 
@@ -290,7 +297,6 @@ fn do_test_set<T: BitBlock>(data: &[u8]) -> BitSet<T> {
                     op = other.saturating_sub(16);
                     continue;
                 }
-
             }
             break;
         }
@@ -325,14 +331,13 @@ fn main() {
         eprintln!("Usage: {} <filename>", args[0]);
         std::process::exit(1);
     }
-    
+
     let filename = &args[1];
-    
-    let bytes: Vec<u8> = fs::read(filename)
-        .unwrap_or_else(|err| {
-            eprintln!("Error reading file '{}': {}", filename, err);
-            std::process::exit(1);
-        });
+
+    let bytes: Vec<u8> = fs::read(filename).unwrap_or_else(|err| {
+        eprintln!("Error reading file '{}': {}", filename, err);
+        std::process::exit(1);
+    });
 
     do_test_all(&bytes[..]);
 }
