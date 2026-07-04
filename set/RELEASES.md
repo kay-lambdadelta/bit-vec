@@ -3,14 +3,21 @@ Version 0.11.0 (TO BE RELEASED)
 
 <a id="v0.11.0"></a>
 
-Version 0.10.0 (VULNERABILITY FIX)
+Version 0.10.1 (VULNERABILITY FIX)
 ========================================================
 
-<a id="v0.10.0"></a>
+<a id="v0.10.1"></a>
 
 - removed nanoserde support
 - moved the crate into a workspace
 - fixed an unsoundness with deserialize (see `bit-vec` v0.10.0)
+
+Version 0.10.0
+========================================================
+
+<a id="v0.10.0"></a>
+
+- exposed `BitBlock`
 
 Version 0.9.0
 ========================================================
