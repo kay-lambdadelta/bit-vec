@@ -1,8 +1,5 @@
 //! Simple fuzzer testing all available `BitVec`, `BitSet` and `BitMatrix` operations
 
-use std::env;
-use std::fs;
-
 use bit_set::BitSet;
 use bit_vec::{BitBlock, BitVec};
 // use smallvec::SmallVec;
@@ -319,6 +316,9 @@ fn do_test_all(data: &[u8]) {
 
 #[cfg(all(not(feature = "afl"), not(feature = "honggfuzz")))]
 fn main() {
+    use std::env;
+    use std::fs;
+
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
