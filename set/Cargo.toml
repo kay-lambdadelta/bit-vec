@@ -1,6 +1,6 @@
 [package]
 name = "bit-set"
-version.workspace = true
+version = "0.10.1"
 rust-version.workspace = true
 authors = ["Alexis Beingessner <a.beingessner@gmail.com>"]
 license = "Apache-2.0 OR MIT"
