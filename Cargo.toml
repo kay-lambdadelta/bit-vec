@@ -4,10 +4,13 @@ members = [
     "vec",
     "set",
     "matrix",
+    "fuzz",
 ]
 
-exclude = [
-    "fuzz",
+default-members = [
+    "vec",
+    "set",
+    "matrix",
 ]
 
 resolver = "2"

@@ -95,6 +95,11 @@
 #[cfg(any(test, feature = "std"))]
 #[macro_use]
 extern crate std;
+
+#[cfg(all(feature = "std", feature = "borsh"))]
+use std::borrow::ToOwned;
+#[cfg(all(feature = "std", feature = "miniserde"))]
+use std::boxed::Box;
 #[cfg(feature = "std")]
 use std::rc::Rc;
 #[cfg(feature = "std")]
@@ -105,12 +110,18 @@ use std::vec::Vec;
 #[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
+#[cfg(all(not(feature = "std"), feature = "borsh"))]
+use alloc::borrow::ToOwned;
+#[cfg(all(not(feature = "std"), feature = "miniserde"))]
+use alloc::boxed::Box;
 #[cfg(not(feature = "std"))]
 use alloc::rc::Rc;
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
+use core::error::Error;
 
 #[cfg(feature = "borsh")]
 extern crate borsh;
@@ -222,20 +233,163 @@ bit_block_impl! {
 /// println!("{:?}", bv);
 /// println!("total bits set to true: {}", bv.iter().filter(|x| *x).count());
 /// ```
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(
-    feature = "borsh",
-    derive(borsh::BorshDeserialize, borsh::BorshSerialize)
-)]
-#[cfg_attr(
-    feature = "miniserde",
-    derive(miniserde::Deserialize, miniserde::Serialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "borsh", derive(borsh::BorshSerialize))]
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize))]
 pub struct BitVec<B = u32> {
     /// Internal representation of the bit vector
     storage: Vec<B>,
     /// The number of valid bits in the internal representation
     nbits: usize,
+}
+
+#[cfg(any(feature = "serde", feature = "borsh", feature = "miniserde"))]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
+#[cfg_attr(feature = "borsh", derive(borsh::BorshDeserialize))]
+#[cfg_attr(feature = "miniserde", derive(miniserde::Deserialize))]
+struct UncheckedBitVec<B = u32> {
+    storage: Vec<B>,
+    nbits: usize,
+}
+
+#[cfg(feature = "serde")]
+impl<'de, B: BitBlock> serde::Deserialize<'de> for BitVec<B>
+where
+    B: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        UncheckedBitVec::<B>::deserialize(deserializer).and_then(|unchecked| {
+            let result = BitVec {
+                storage: unchecked.storage,
+                nbits: unchecked.nbits,
+            };
+            if !result.storage_len_matches_nbits() {
+                Err(D::Error::custom(DeserializeError::StorageLenMismatch))
+            } else if !result.is_last_block_fixed() {
+                Err(D::Error::custom(DeserializeError::TrailingBits))
+            } else {
+                Ok(result)
+            }
+        })
+    }
+}
+
+#[cfg(feature = "borsh")]
+impl<B: BitBlock> borsh::BorshDeserialize for BitVec<B>
+where
+    B: borsh::BorshDeserialize,
+{
+    fn deserialize_reader<R: borsh::io::Read>(reader: &mut R) -> borsh::io::Result<Self> {
+        UncheckedBitVec::<B>::deserialize_reader(reader).and_then(|unchecked| {
+            let result = BitVec {
+                storage: unchecked.storage,
+                nbits: unchecked.nbits,
+            };
+            if !result.storage_len_matches_nbits() {
+                Err(borsh::io::Error::other(
+                    DeserializeError::StorageLenMismatch,
+                ))
+            } else if !result.is_last_block_fixed() {
+                Err(borsh::io::Error::other(DeserializeError::TrailingBits))
+            } else {
+                Ok(result)
+            }
+        })
+    }
+}
+
+#[cfg(feature = "miniserde")]
+miniserde::make_place!(Place);
+
+#[cfg(feature = "miniserde")]
+struct BitVecBuilder<'a, B> {
+    storage: Option<Vec<B>>,
+    nbits: Option<usize>,
+    out: &'a mut Option<BitVec<B>>,
+}
+
+#[cfg(feature = "miniserde")]
+impl<B: BitBlock> miniserde::de::Visitor for Place<BitVec<B>>
+where
+    B: miniserde::Deserialize,
+{
+    fn map(&mut self) -> miniserde::Result<Box<dyn miniserde::de::Map + '_>> {
+        Ok(Box::new(BitVecBuilder {
+            storage: None,
+            nbits: None,
+            out: &mut self.out,
+        }))
+    }
+}
+
+#[cfg(feature = "miniserde")]
+impl<B: BitBlock> miniserde::de::Map for BitVecBuilder<'_, B>
+where
+    B: miniserde::Deserialize,
+{
+    fn key(&mut self, k: &str) -> miniserde::Result<&mut dyn miniserde::de::Visitor> {
+        match k {
+            "storage" => Ok(miniserde::Deserialize::begin(&mut self.storage)),
+            "nbits" => Ok(miniserde::Deserialize::begin(&mut self.nbits)),
+            _ => Ok(<dyn miniserde::de::Visitor>::ignore()),
+        }
+    }
+
+    fn finish(&mut self) -> miniserde::Result<()> {
+        let storage = self.storage.take().ok_or(miniserde::Error)?;
+        let nbits = self.nbits.take().ok_or(miniserde::Error)?;
+        let result = BitVec { storage, nbits };
+        if !result.storage_len_matches_nbits() || !result.is_last_block_fixed() {
+            Err(miniserde::Error)
+        } else {
+            *self.out = Some(result);
+            Ok(())
+        }
+    }
+}
+
+#[cfg(feature = "miniserde")]
+impl<B: BitBlock> miniserde::Deserialize for BitVec<B>
+where
+    B: miniserde::Deserialize,
+{
+    fn begin(out: &mut Option<Self>) -> &mut dyn miniserde::de::Visitor {
+        Place::new(out)
+    }
+}
+
+#[derive(Debug)]
+pub enum DeserializeError {
+    StorageLenMismatch,
+    TrailingBits,
+}
+
+impl core::fmt::Display for DeserializeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.simple_description())
+    }
+}
+
+#[cfg(feature = "borsh")]
+impl From<DeserializeError> for String {
+    fn from(value: DeserializeError) -> Self {
+        value.simple_description().to_owned()
+    }
+}
+
+impl Error for DeserializeError {}
+
+impl DeserializeError {
+    fn simple_description(&self) -> &str {
+        match self {
+            DeserializeError::TrailingBits => "some out of bounds trailing bits are set",
+            DeserializeError::StorageLenMismatch => "nbits and storage length isnt same",
+        }
+    }
 }
 
 // FIXME(Gankro): NopeNopeNopeNopeNope (wait for IndexGet to be a thing)
@@ -587,6 +741,11 @@ impl<B: BitBlock> BitVec<B> {
         }
     }
 
+    /// Checks whether our `nbits` fits within our storage.
+    fn storage_len_matches_nbits(&self) -> bool {
+        self.storage.len() == blocks_for_bits::<B>(self.nbits)
+    }
+
     /// Ensure the invariant for the last block.
     ///
     /// An operation might screw up the unused bits in the last block of the
@@ -597,6 +756,7 @@ impl<B: BitBlock> BitVec<B> {
     #[inline]
     fn ensure_invariant(&self) {
         if cfg!(test) {
+            debug_assert!(self.storage_len_matches_nbits());
             debug_assert!(self.is_last_block_fixed());
         }
     }
@@ -1886,11 +2046,11 @@ impl<B: BitBlock> BitVec<B> {
         let bit_at = len % bits;
         let flag = if bit { B::one() << bit_at } else { B::zero() };
 
-        self.ensure_invariant();
-
         self.nbits += 1;
 
         self.storage[block_at] |= flag; // set the bit
+
+        self.ensure_invariant();
 
         Ok(())
     }
