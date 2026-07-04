@@ -19,6 +19,7 @@ miniserde = { version = "0.1", optional = true }
 
 [dependencies.bit-vec]
 path = "../vec/"
+version = "0.10.0"
 default-features = false
 
 [dev-dependencies]

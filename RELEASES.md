@@ -1,4 +1,9 @@
-Version 0.10.0 (VULNERABILITY FIX) (TO BE RELEASED)
+Version 0.11.0 (TO BE RELEASED)
+==========================
+
+<a id="v0.11.0"></a>
+
+Version 0.10.0 (VULNERABILITY FIX)
 ==========================
 
 <a id="v0.10.0"></a>
@@ -7,6 +12,7 @@ Version 0.10.0 (VULNERABILITY FIX) (TO BE RELEASED)
   could make `fn get_unchecked` perform undefined behavior, and could make
   other functions return incorrect results
 - removed nanoserde support
+- moved all the crates into a workspace
 
 Version 0.9.1
 ==========================
