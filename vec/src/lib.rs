@@ -2046,11 +2046,11 @@ impl<B: BitBlock> BitVec<B> {
         let bit_at = len % bits;
         let flag = if bit { B::one() << bit_at } else { B::zero() };
 
-        self.ensure_invariant();
-
         self.nbits += 1;
 
         self.storage[block_at] |= flag; // set the bit
+
+        self.ensure_invariant();
 
         Ok(())
     }
