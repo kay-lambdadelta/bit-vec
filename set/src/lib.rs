@@ -48,7 +48,7 @@
 //! let bv = s.into_bit_vec();
 //! assert!(bv[3]);
 //! ```
-#![doc(html_root_url = "https://docs.rs/bit-set/0.8.0")]
+#![doc(html_root_url = "https://docs.rs/bit-set/0.11.0")]
 #![no_std]
 #![deny(clippy::shadow_reuse)]
 #![deny(clippy::shadow_same)]
@@ -74,3 +74,5 @@ pub(crate) mod local_prelude {
 
 pub use bit_vec::BitBlock;
 pub use set::BitSet;
+
+pub use iter::{Difference, Intersection, Iter, SymmetricDifference, Union};
