@@ -1,6 +1,3 @@
-pub static TRUE: bool = true;
-pub static FALSE: bool = false;
-
 pub(crate) fn reverse_bits(byte: u8) -> u8 {
     REVERSE_TABLE[byte as usize]
 }
