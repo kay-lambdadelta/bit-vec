@@ -3,6 +3,13 @@ Version 0.11.0 (TO BE RELEASED)
 
 <a id="v0.11.0"></a>
 
+Version 0.10.1
+==========================
+
+<a id="v0.10.1"></a>
+
+- indexing into a `BitVec` has simpler codegen (https://github.com/contain-rs/bit-vec/pull/153)
+
 Version 0.10.0 (VULNERABILITY FIX)
 ==========================
 

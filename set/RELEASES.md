@@ -3,6 +3,14 @@ Version 0.12.0 (TO BE RELEASED)
 
 <a id="v0.12.0"></a>
 
+Version 0.11.1
+========================================================
+
+<a id="v0.11.1"></a>
+
+- fixed repo links in Cargo.toml
+- methods such as `fn contains` may have better codegen (https://github.com/contain-rs/bit-vec/pull/153)
+
 Version 0.11.0 (VULNERABILITY FIX)
 ========================================================
 
